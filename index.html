@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우리 가족 세계정복</title>
+<style>
+  :root{
+    --paper:#DCEAF6;
+    --paper-dark:#C9DEF0;
+    --ink:#1F3A5C;
+    --ink-soft:#4C6C8C;
+    --ocean:#8FC1D6;
+    --ocean-deep:#6AA9C2;
+    --land:#AFC9A7;
+    --gold:#C99A3B;
+    --red:#C2453B;
+    --red-soft:#E7B8B2;
+    --blue:#1D4F8C;
+    --blue-soft:#AFCBEA;
+    --card-shadow: 0 10px 26px rgba(31,58,92,0.18);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 700px at 20% -10%, #F0F8FF 0%, var(--paper) 55%),
+      var(--paper);
+    color:var(--ink);
+    font-family: 'Trebuchet MS','Segoe UI Rounded','Noto Sans KR', -apple-system, sans-serif;
+    min-height:100vh;
+    padding: 18px 14px 60px;
+  }
+  .wrap{ max-width: 980px; margin: 0 auto; }
+
+  header.top{
+    display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:10px;
+    border-bottom: 3px dashed var(--gold);
+    padding-bottom: 12px; margin-bottom: 16px;
+  }
+  h1{
+    font-size: clamp(22px, 4.2vw, 32px);
+    margin: 0;
+    letter-spacing: 0.3px;
+  }
+  h1 .flag{ font-size: 0.85em; }
+  .subtitle{ color: var(--ink-soft); font-size: 13.5px; margin-top: 4px; }
+  .progress-pill{
+    background: var(--ink); color: var(--paper);
+    border-radius: 999px; padding: 8px 16px; font-size: 14px; font-weight:600;
+    white-space:nowrap;
+  }
+
+  .scoreboard{
+    display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;
+  }
+  .score-card{
+    background: #F4FAFF; border-radius: 16px; padding: 14px 16px;
+    box-shadow: var(--card-shadow);
+    border: 2px solid rgba(31,58,92,0.08);
+  }
+  .score-card .name{ font-weight:700; font-size: 16px; display:flex; align-items:center; gap:8px;}
+  .score-card .dot{ width:12px; height:12px; border-radius:50%; display:inline-block; }
+  .score-card .num{ font-size: 30px; font-weight:800; margin-top:4px; }
+  .score-card .bar-bg{ background:#D9E7F5; border-radius:999px; height:10px; margin-top:8px; overflow:hidden;}
+  .score-card .bar-fill{ height:100%; border-radius:999px; transition: width .5s ease; }
+
+  .map-card{
+    background: linear-gradient(180deg,#F7FBFF,#E9F2FA);
+    border-radius: 20px; padding: 10px;
+    box-shadow: var(--card-shadow);
+    border: 2px solid rgba(31,58,92,0.08);
+    position: relative;
+    overflow:hidden;
+  }
+  .map-toolbar{
+    display:flex; justify-content:space-between; align-items:center; padding: 4px 8px 8px;
+    font-size: 13px; color: var(--ink-soft);
+  }
+  .btn{
+    font-family:inherit; cursor:pointer; border:none; border-radius: 12px;
+    padding: 9px 14px; font-size: 14px; font-weight:700;
+    background: var(--ink); color: var(--paper);
+    box-shadow: 0 3px 0 rgba(0,0,0,0.25);
+  }
+  .btn:active{ transform: translateY(2px); box-shadow:none; }
+  .btn.ghost{ background: transparent; color: var(--ink); border: 2px solid var(--ink); box-shadow:none; }
+  .btn.small{ padding:6px 10px; font-size:12.5px; }
+
+  #mapEl{ width:100%; height:440px; border-radius:14px; background:#dce8f0; }
+  .leaflet-popup-content-wrapper{ border-radius:10px; }
+  .country-pin{ border-radius:50%; border:1px solid rgba(31,58,92,0.7); box-shadow:0 1px 3px rgba(0,0,0,0.3); }
+  .country-pin.unclaimed{ background:#efe3c4; }
+  .country-pin.red{ background:var(--red); }
+  .country-pin.blue{ background:var(--blue); }
+
+  .info-card{
+    position:absolute; top: 58px; right: 14px; width: 220px;
+    background:#FAFDFF; border-radius:14px; padding: 14px;
+    box-shadow: var(--card-shadow); border:2px solid rgba(31,58,92,0.1);
+    display:none; z-index: 5000;
+  }
+  .info-card.show{ display:block; }
+  .info-card .country{ font-size:17px; font-weight:800; }
+  .info-card .capital{ font-size:17px; font-weight:800; margin-top:2px; }
+  .info-card .status{ margin-top:10px; font-size:13px; padding:6px 10px; border-radius:10px; display:inline-block; font-weight:700; }
+  .info-card .status.unclaimed{ background:#efe3c4; color:var(--ink-soft); }
+  .info-card .status.red{ background:var(--red-soft); color:#7a2b23; }
+  .info-card .status.blue{ background:var(--blue-soft); color:#1c4666; }
+  .info-card .close{ position:absolute; top:8px; right:10px; cursor:pointer; font-size:16px; color:var(--ink-soft); background:none; border:none; }
+
+  .actions-row{ display:flex; gap:10px; margin: 16px 0; flex-wrap:wrap; }
+
+  .tabs{ display:flex; gap:8px; margin: 22px 0 10px; }
+  .tab-btn{
+    font-family:inherit; cursor:pointer; border:2px solid var(--ink); background:transparent;
+    color:var(--ink); padding:7px 14px; border-radius:999px; font-size:13.5px; font-weight:700;
+  }
+  .tab-btn.active{ background:var(--ink); color:var(--paper); }
+  .tab-panel{ display:none; }
+  .tab-panel.active{ display:block; }
+
+  .legend-catalog{ display:flex; flex-direction:column; gap:16px; }
+  .deed-section-title{ font-size:14px; font-weight:800; margin: 4px 0 -4px; color: var(--ink); }
+  .deed-section-title.good{ color:#4a7a3a; }
+  .deed-section-title.bad{ color:#8a3a2f; }
+  .deed-grid{
+    display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:10px;
+  }
+  .deed-chip{
+    background:#F5FAFF; border:2px solid rgba(31,58,92,0.1); border-radius:12px;
+    padding:10px 12px; font-size:13.5px; display:flex; align-items:center; gap:8px;
+  }
+  .deed-chip .pts{ margin-left:auto; font-weight:800; }
+
+  .stats-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+  .stats-col h3{ margin: 4px 0 10px; font-size:15px; }
+  .stat-row{ display:flex; align-items:center; gap:8px; margin-bottom:8px; font-size:13px; }
+  .stat-row .lbl{ width: 108px; flex-shrink:0; }
+  .stat-row .track{ flex:1; background:#D9E7F5; border-radius:999px; height:10px; overflow:hidden; }
+  .stat-row .fill{ height:100%; border-radius:999px; }
+  .stat-row .cnt{ width:22px; text-align:right; font-weight:700; }
+
+  .log-list{ list-style:none; padding:0; margin:0; max-height:260px; overflow:auto; }
+  .log-list li{
+    display:flex; align-items:center; gap:8px; padding:8px 4px; font-size:13px;
+    border-bottom: 1px solid rgba(31,58,92,0.08);
+  }
+  .log-list .who{ font-weight:700; }
+  .log-list .when{ margin-left:auto; color:var(--ink-soft); font-size:11.5px; }
+
+  /* modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(30,22,14,0.55);
+    display:none; align-items:center; justify-content:center; padding:16px; z-index:10000;
+  }
+  .overlay.show{ display:flex; }
+  .modal{
+    background:#FBFEFF; border-radius:18px; padding:20px; width:100%; max-width:380px;
+    box-shadow: var(--card-shadow); max-height:88vh; overflow:auto;
+  }
+  .modal h2{ margin:0 0 4px; font-size:18px; }
+  .modal .hint{ font-size:12.5px; color:var(--ink-soft); margin-bottom:14px; }
+  .field-label{ font-size:12.5px; font-weight:700; margin:12px 0 6px; color:var(--ink-soft); }
+  .child-toggle, .cat-toggle{ display:flex; gap:8px; }
+  .toggle-opt{
+    flex:1; text-align:center; padding:9px 6px; border-radius:10px; border:2px solid rgba(31,58,92,0.15);
+    cursor:pointer; font-size:13.5px; font-weight:700; background:#fff;
+  }
+  .toggle-opt.active.irene{ background:var(--red); color:#fff; border-color:var(--red); }
+  .toggle-opt.active.claire{ background:var(--blue); color:#fff; border-color:var(--blue); }
+  .toggle-opt.active.good{ background:#5c8a4a; color:#fff; border-color:#5c8a4a; }
+  .toggle-opt.active.bad{ background:#a14a3e; color:#fff; border-color:#a14a3e; }
+  .deed-list{ display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  .deed-opt{
+    display:flex; align-items:center; gap:10px; border:2px solid rgba(31,58,92,0.15);
+    border-radius:12px; padding:9px 12px; cursor:pointer; font-size:13.5px;
+  }
+  .deed-opt.active{ border-color: var(--gold); background:#fdf2d9; }
+  .deed-opt .pts{ margin-left:auto; font-weight:800; }
+  input[type=text], input[type=password], input[type=number]{
+    width:100%; padding:9px 10px; border-radius:10px; border:2px solid rgba(31,58,92,0.18);
+    font-size:14px; font-family:inherit; margin-top:4px;
+  }
+  .modal-actions{ display:flex; gap:10px; margin-top:18px; }
+  .modal-actions .btn{ flex:1; }
+  .error-msg{ color:#a1332a; font-size:12.5px; margin-top:8px; min-height:14px; }
+
+  .celebrate-overlay{
+    position:fixed; inset:0; background:rgba(30,22,14,0.75);
+    display:none; align-items:center; justify-content:center; z-index:10001; text-align:center; padding:20px;
+  }
+  .celebrate-overlay.show{ display:flex; }
+  .celebrate-box{ background:#FBFEFF; border-radius:22px; padding:34px 26px; max-width:360px; }
+  .celebrate-box .emoji{ font-size:48px; }
+  .celebrate-box h2{ margin:10px 0 6px; }
+  .celebrate-box p{ color:var(--ink-soft); font-size:14px; }
+
+  footer{ text-align:center; color:var(--ink-soft); font-size:12px; margin-top:30px; }
+
+  @media (max-width:560px){
+    .scoreboard{ grid-template-columns: 1fr; }
+    .stats-grid{ grid-template-columns: 1fr; }
+    .info-card{ position:static; width:auto; margin-top:10px; }
+  }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1><span class="flag">🗺️</span> 우리 가족 세계정복 <span style="font-weight:600; font-size:0.55em; color:var(--ink-soft);">Family World Conquest</span></h1>
+      <div class="subtitle">착한 일로 나라를 정복하고, 100개국을 다 채우면 각자 $100!</div>
+    </div>
+    <div class="progress-pill" id="progressPill">0 / 100개국 정복</div>
+  </header>
+
+  <div class="scoreboard">
+    <div class="score-card">
+      <div class="name"><span class="dot" style="background:var(--red)"></span>IRENE</div>
+      <div class="num" id="ireneNum">0</div>
+      <div class="bar-bg"><div class="bar-fill" id="ireneBar" style="width:0%; background:var(--red);"></div></div>
+    </div>
+    <div class="score-card">
+      <div class="name"><span class="dot" style="background:var(--blue)"></span>CLAIRE</div>
+      <div class="num" id="claireNum">0</div>
+      <div class="bar-bg"><div class="bar-fill" id="claireBar" style="width:0%; background:var(--blue);"></div></div>
+    </div>
+  </div>
+
+  <div class="map-card">
+    <div class="map-toolbar">
+      <span>나라를 눌러보면 이름과 수도가 보여요 · 스크롤/두 손가락으로 확대</span>
+      <button class="btn ghost small" id="resetZoomBtn">전체 지도</button>
+    </div>
+    <div id="mapEl"></div>
+    <div class="info-card" id="infoCard">
+      <button class="close" id="infoClose">✕</button>
+      <div class="country" id="infoCountry">-</div>
+      <div class="capital" id="infoCapital">-</div>
+      <span class="status" id="infoStatus">-</span>
+    </div>
+  </div>
+
+  <div class="actions-row">
+    <button class="btn" id="openLogBtn">✏️ 포인트 기록하기</button>
+    <button class="btn ghost" id="openSettingsBtn">⚙️ 비밀번호 설정</button>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="catalog">착한일 · 나쁜일 목록</button>
+    <button class="tab-btn" data-tab="stats">통계</button>
+    <button class="tab-btn" data-tab="log">기록</button>
+  </div>
+
+  <div class="tab-panel active" id="tab-catalog">
+    <div class="legend-catalog" id="catalogList"></div>
+  </div>
+
+  <div class="tab-panel" id="tab-stats">
+    <div class="stats-grid">
+      <div class="stats-col">
+        <h3 style="color:var(--red)">IRENE 통계</h3>
+        <div id="statsIrene"></div>
+      </div>
+      <div class="stats-col">
+        <h3 style="color:var(--blue)">CLAIRE 통계</h3>
+        <div id="statsClaire"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-log">
+    <ul class="log-list" id="logList"></ul>
+  </div>
+
+  <footer>이 링크를 가족과 공유하면 아빠·엄마·IRENE·CLAIRE 모두 같은 지도를 볼 수 있어요.</footer>
+</div>
+
+<!-- Add/Remove point modal -->
+<div class="overlay" id="logOverlay">
+  <div class="modal">
+    <h2>포인트 기록하기</h2>
+    <div class="hint">포인트를 더하거나 빼려면 부모님 비밀번호가 필요해요.</div>
+
+    <div class="field-label">누구인가요?</div>
+    <div class="child-toggle">
+      <div class="toggle-opt active irene" data-child="irene">IRENE</div>
+      <div class="toggle-opt claire" data-child="claire">CLAIRE</div>
+    </div>
+
+    <div class="field-label">착한 일이었나요, 아쉬운 일이었나요?</div>
+    <div class="cat-toggle">
+      <div class="toggle-opt active good" data-cat="good">👍 착한 일 (+점수)</div>
+      <div class="toggle-opt bad" data-cat="bad">👎 아쉬운 일 (-점수)</div>
+    </div>
+
+    <div class="field-label">어떤 일인가요?</div>
+    <div class="deed-list" id="deedList"></div>
+
+    <div id="customFields" style="display:none;">
+      <div class="field-label">직접 입력</div>
+      <input type="text" id="customLabel" placeholder="예: 방 청소 도와줌">
+      <input type="number" id="customPoints" placeholder="점수 (예: 2)" min="1" max="20" style="margin-top:8px;">
+    </div>
+
+    <div class="field-label">부모님 비밀번호</div>
+    <input type="password" id="pinInput" placeholder="••••">
+    <div class="error-msg" id="logError"></div>
+
+    <div class="modal-actions">
+      <button class="btn ghost" id="logCancelBtn">취소</button>
+      <button class="btn" id="logConfirmBtn">기록하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings / change password modal -->
+<div class="overlay" id="settingsOverlay">
+  <div class="modal">
+    <h2>비밀번호 설정</h2>
+    <div class="hint">처음 비밀번호는 0000 이에요. 부모님만 바꿀 수 있어요.</div>
+    <div class="field-label">현재 비밀번호</div>
+    <input type="password" id="currentPinInput" placeholder="••••">
+    <div class="field-label">새 비밀번호</div>
+    <input type="password" id="newPinInput" placeholder="••••">
+    <div class="error-msg" id="settingsError"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="settingsCancelBtn">취소</button>
+      <button class="btn" id="settingsConfirmBtn">변경하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- Completion celebration -->
+<div class="celebrate-overlay" id="celebrateOverlay">
+  <div class="celebrate-box">
+    <div class="emoji">🌍🎉👑</div>
+    <h2>세계정복 완료!</h2>
+    <p>IRENE과 CLAIRE가 100개국을 모두 정복했어요!<br>둘 다 <strong>$100</strong>씩 받을 자격이 생겼어요.</p>
+    <button class="btn" id="closeCelebrateBtn" style="margin-top:10px;">닫기</button>
+    <div style="margin-top:14px;">
+      <button class="btn ghost small" id="openResetBtn">새 정복 시작하기 (비밀번호 필요)</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="resetOverlay">
+  <div class="modal">
+    <h2>새로운 정복 시작</h2>
+    <div class="hint">지도를 초기화하고 처음부터 다시 시작해요. 부모님 비밀번호가 필요해요.</div>
+    <input type="password" id="resetPinInput" placeholder="••••">
+    <div class="error-msg" id="resetError"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" id="resetCancelBtn">취소</button>
+      <button class="btn" id="resetConfirmBtn">초기화하기</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- Country data (100 countries, grouped by continent, with real lon/lat) ---------- */
+  const RAW = {
+    asia: [
+      ["South Korea","Seoul",127.0,37.55],["Japan","Tokyo",139.7,35.7],["China","Beijing",116.4,39.9],["India","New Delhi",77.2,28.6],
+      ["Thailand","Bangkok",100.5,13.8],["Vietnam","Hanoi",105.8,21.0],["Indonesia","Jakarta",106.8,-6.2],["Philippines","Manila",121.0,14.6],
+      ["Malaysia","Kuala Lumpur",101.7,3.1],["Singapore","Singapore",103.8,1.3],["Mongolia","Ulaanbaatar",106.9,47.9],["Nepal","Kathmandu",85.3,27.7],
+      ["Sri Lanka","Colombo",79.9,6.9],["Cambodia","Phnom Penh",104.9,11.6],["Laos","Vientiane",102.6,18.0],["Myanmar","Naypyidaw",96.1,19.7],
+      ["Bangladesh","Dhaka",90.4,23.8],["Pakistan","Islamabad",73.0,33.7],["Kazakhstan","Astana",71.4,51.2],["Uzbekistan","Tashkent",69.2,41.3],
+      ["Saudi Arabia","Riyadh",46.7,24.6],["United Arab Emirates","Abu Dhabi",54.4,24.5],["Jordan","Amman",35.9,31.9],["Turkey","Ankara",32.9,39.9],["Iran","Tehran",51.4,35.7]
+    ],
+    europe: [
+      ["France","Paris",2.35,48.85],["Germany","Berlin",13.4,52.5],["United Kingdom","London",-0.13,51.5],["Italy","Rome",12.5,41.9],
+      ["Spain","Madrid",-3.7,40.4],["Portugal","Lisbon",-9.1,38.7],["Netherlands","Amsterdam",4.9,52.4],["Belgium","Brussels",4.35,50.85],
+      ["Switzerland","Bern",7.45,47.0],["Austria","Vienna",16.37,48.2],["Sweden","Stockholm",18.06,59.33],["Norway","Oslo",10.75,59.9],
+      ["Denmark","Copenhagen",12.57,55.68],["Finland","Helsinki",24.94,60.17],["Poland","Warsaw",21.0,52.23],["Greece","Athens",23.73,37.98],
+      ["Ireland","Dublin",-6.26,53.35],["Czechia","Prague",14.42,50.08],["Hungary","Budapest",19.04,47.5],["Iceland","Reykjavik",-21.9,64.15]
+    ],
+    africa: [
+      ["Egypt","Cairo",31.2,30.0],["Morocco","Rabat",-6.83,34.0],["Kenya","Nairobi",36.8,-1.3],["South Africa","Pretoria",28.2,-25.7],
+      ["Nigeria","Abuja",7.5,9.08],["Ghana","Accra",-0.19,5.55],["Ethiopia","Addis Ababa",38.75,9.03],["Tanzania","Dodoma",35.7,-6.17],
+      ["Tunisia","Tunis",10.18,36.8],["Algeria","Algiers",3.05,36.75],["Senegal","Dakar",-17.44,14.7],["Uganda","Kampala",32.58,0.32],
+      ["Zimbabwe","Harare",31.05,-17.83],["Zambia","Lusaka",28.28,-15.42],["Namibia","Windhoek",17.08,-22.57],["Botswana","Gaborone",25.9,-24.65],
+      ["Rwanda","Kigali",30.06,-1.94],["Madagascar","Antananarivo",47.5,-18.9],["Mozambique","Maputo",32.58,-25.97],["Côte d'Ivoire","Yamoussoukro",-5.28,6.82]
+    ],
+    namerica: [
+      ["United States","Washington D.C.",-77.03,38.9],["Canada","Ottawa",-75.7,45.42],["Mexico","Mexico City",-99.13,19.43],["Cuba","Havana",-82.38,23.13],
+      ["Jamaica","Kingston",-76.79,17.97],["Costa Rica","San Jose",-84.09,9.93],["Panama","Panama City",-79.52,8.98],["Guatemala","Guatemala City",-90.5,14.6],
+      ["Honduras","Tegucigalpa",-87.2,14.1],["Bahamas","Nassau",-77.35,25.06],["Dominican Republic","Santo Domingo",-69.9,18.48],["Belize","Belmopan",-88.77,17.25],
+      ["Nicaragua","Managua",-86.25,12.15],["El Salvador","San Salvador",-89.2,13.7],["Haiti","Port-au-Prince",-72.34,18.53]
+    ],
+    samerica: [
+      ["Brazil","Brasilia",-47.93,-15.78],["Argentina","Buenos Aires",-58.38,-34.6],["Chile","Santiago",-70.65,-33.45],["Peru","Lima",-77.03,-12.05],
+      ["Colombia","Bogota",-74.08,4.71],["Venezuela","Caracas",-66.9,10.5],["Ecuador","Quito",-78.5,-0.23],["Bolivia","Sucre",-65.26,-19.03],
+      ["Paraguay","Asuncion",-57.63,-25.3],["Uruguay","Montevideo",-56.19,-34.9],["Guyana","Georgetown",-58.16,6.8],["Suriname","Paramaribo",-55.17,5.87]
+    ],
+    oceania: [
+      ["Australia","Canberra",149.13,-35.28],["New Zealand","Wellington",174.78,-41.29],["Fiji","Suva",178.44,-18.14],["Papua New Guinea","Port Moresby",147.18,-9.48],
+      ["Samoa","Apia",-171.75,-13.83],["Tonga","Nuku'alofa",-175.2,-21.13],["Vanuatu","Port Vila",168.32,-17.73],["Solomon Islands","Honiara",159.95,-9.43]
+    ]
+  };
+
+  function layoutContinent(list){
+    return list.map(item=>({ name:item[0], capital:item[1], lon:item[2], lat:item[3] }));
+  }
+
+  const byContinent = {};
+  Object.keys(RAW).forEach(key=>{ byContinent[key] = layoutContinent(RAW[key]); });
+
+  // round-robin merge so conquest spreads across the whole world as points come in
+  const order = ["asia","europe","africa","namerica","samerica","oceania"];
+  const COUNTRIES = [];
+  let idx = 0;
+  while (COUNTRIES.length < 100){
+    for (const key of order){
+      if (byContinent[key][idx]) COUNTRIES.push(byContinent[key][idx]);
+    }
+    idx++;
+  }
+
+  /* ---------- Deed catalog ---------- */
+  const GOOD_DEEDS = [
+    {id:"dailystudy", label:"Daily study and math", icon:"📚", points:1},
+    {id:"workbook", label:"Finish workbook", icon:"📝", points:2},
+    {id:"millionmedal", label:"Million medal", icon:"🏅", points:1},
+    {id:"aplusweek", label:"A+ for one week", icon:"🌟", points:1},
+    {id:"laps", label:"Laps at El Dorado and Running each", icon:"🏃", points:2},
+    {id:"naturecenter", label:"Nature center 4 laps", icon:"🌳", points:2},
+    {id:"hiking", label:"Weekend hiking", icon:"🥾", points:3},
+    {id:"errand", label:"Errands for parents", icon:"🧹", points:1},
+  ];
+  const BAD_DEEDS = [
+    {id:"noaplus", label:"NO A+", icon:"📉", points:1},
+    {id:"fight", label:"FIGHT", icon:"😤", points:2},
+    {id:"whine", label:"Complain and whine to parents", icon:"😩", points:1},
+    {id:"badword", label:"Bad word (evil mean)", icon:"🤬", points:1},
+    {id:"nostudy", label:"No daily study", icon:"📕", points:1},
+    {id:"nosleep", label:"10:30 no sleep", icon:"🌙", points:1},
+  ];
+
+  /* ---------- Storage (Firebase Realtime Database — real-time shared across everyone) ---------- */
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyDOoK6QZmXSQlx3KU6meGhB2rBFspotVz0",
+    authDomain: "family-app-2b497.firebaseapp.com",
+    databaseURL: "https://family-app-2b497-default-rtdb.firebaseio.com",
+    projectId: "family-app-2b497",
+    storageBucket: "family-app-2b497.firebasestorage.app",
+    messagingSenderId: "963515436065",
+    appId: "1:963515436065:web:768879ca66359f79086760"
+  };
+  let dbRef = null;
+  let state = null;
+
+  function defaultState(){
+    return { pin:"0000", slots: new Array(100).fill(""), irenePoints:0, clairePoints:0, log:[] };
+  }
+
+  function normalizeState(raw){
+    const s = raw || defaultState();
+    if (!s.slots) s.slots = new Array(100).fill("");
+    if (Array.isArray(s.slots)){
+      if (s.slots.length !== 100){
+        const filled = new Array(100).fill("");
+        s.slots.forEach((v,i)=>{ if (i < 100) filled[i] = v || ""; });
+        s.slots = filled;
+      }
+    } else {
+      // Firebase can return a sparse array as an object — rebuild a clean 100-length array
+      const filled = new Array(100).fill("");
+      Object.keys(s.slots).forEach(k=>{ const i = parseInt(k,10); if (i>=0 && i<100) filled[i] = s.slots[k] || ""; });
+      s.slots = filled;
+    }
+    if (typeof s.pin !== "string") s.pin = "0000";
+    if (typeof s.irenePoints !== "number") s.irenePoints = 0;
+    if (typeof s.clairePoints !== "number") s.clairePoints = 0;
+    if (!Array.isArray(s.log)) s.log = s.log ? Object.values(s.log) : [];
+    return s;
+  }
+
+  async function saveState(){
+    if (!dbRef) return;
+    try{
+      await dbRef.set(state);
+    }catch(e){
+      console.error("저장 실패", e);
+    }
+  }
+
+  /* ---------- Rendering (Leaflet + real OpenStreetMap tiles) ---------- */
+  let map = null;
+  let countryFillLayer = null;
+  const countryMarkers = [];
+
+  // A few of our English names differ slightly from the Natural Earth dataset's names.
+  const TOPO_NAME_EXCEPTIONS = {
+    "United States": "United States of America",
+    "Dominican Republic": "Dominican Rep.",
+    "Solomon Islands": "Solomon Is."
+  };
+  const topoNameToIndex = {};
+
+  function colorFor(i){
+    if (!state) return "unclaimed";
+    const s = state.slots[i];
+    return s === "red" ? "red" : s === "blue" ? "blue" : "unclaimed";
+  }
+
+  function pinIcon(cls){
+    return L.divIcon({
+      className: "",
+      html: `<div class="country-pin ${cls}" style="width:8px;height:8px;"></div>`,
+      iconSize: [8,8],
+      iconAnchor: [4,4]
+    });
+  }
+
+  function crossesAntimeridian(feature){
+    let minLon = Infinity, maxLon = -Infinity;
+    function scan(coords, depth){
+      if (depth === 0){
+        if (coords[0] < minLon) minLon = coords[0];
+        if (coords[0] > maxLon) maxLon = coords[0];
+      } else {
+        coords.forEach(c => scan(c, depth - 1));
+      }
+    }
+    const geom = feature.geometry;
+    const depth = geom.type === "Polygon" ? 2 : geom.type === "MultiPolygon" ? 3 : -1;
+    if (depth < 0) return false;
+    scan(geom.coordinates, depth);
+    return (maxLon - minLon) > 180;
+  }
+
+  function fillStyleFor(feature){
+    const borderWeight = crossesAntimeridian(feature) ? 0 : 1;
+    const idx = topoNameToIndex[feature.properties.name];
+    if (idx === undefined){
+      return { color: "#5a4a33", weight: borderWeight, opacity: 0.55, fill: false };
+    }
+    const cls = colorFor(idx);
+    if (cls === "unclaimed"){
+      return { color: "#5a4a33", weight: borderWeight, opacity: 0.55, fill: false };
+    }
+    return {
+      color: "#5a4a33", weight: borderWeight, opacity: 0.55,
+      fill: true, fillColor: cls === "red" ? "#C2453B" : "#1D4F8C", fillOpacity: 0.75
+    };
+  }
+
+  function initMap(){
+    map = L.map("mapEl", { worldCopyJump: true, minZoom: 1, maxZoom: 12 });
+    const worldBounds = L.latLngBounds(COUNTRIES.map(c => [c.lat, c.lon]));
+    map.fitBounds(worldBounds, { padding: [16, 16] });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    COUNTRIES.forEach((c,i)=>{
+      topoNameToIndex[TOPO_NAME_EXCEPTIONS[c.name] || c.name] = i;
+    });
+
+    // Real country borders + claimed-country fill, drawn as our own overlay so it
+    // shows at every zoom level (the base OSM tiles only render borders up close).
+    if (typeof topojson !== "undefined"){
+      fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+        .then(res => res.json())
+        .then(world => {
+          const geo = topojson.feature(world, world.objects.countries);
+          countryFillLayer = L.geoJSON(geo, {
+            style: fillStyleFor,
+            onEachFeature: (feature, layer) => {
+              const idx = topoNameToIndex[feature.properties.name];
+              if (idx !== undefined) layer.on("click", ()=> onCountryClick(idx));
+            }
+          }).addTo(map).bringToBack();
+        })
+        .catch(()=>{ /* borders/fill are a nice-to-have; base map still works without them */ });
+    }
+
+    COUNTRIES.forEach((c,i)=>{
+      const marker = L.marker([c.lat, c.lon], { icon: pinIcon(colorFor(i)) }).addTo(map);
+      marker.on("click", ()=> onCountryClick(i));
+      countryMarkers.push(marker);
+    });
+  }
+
+  function refreshMarkerColors(){
+    countryMarkers.forEach((marker,i)=>{
+      marker.setIcon(pinIcon(colorFor(i)));
+    });
+    if (countryFillLayer) countryFillLayer.setStyle(fillStyleFor);
+  }
+
+  const infoCard = document.getElementById("infoCard");
+  document.getElementById("infoClose").addEventListener("click", ()=> infoCard.classList.remove("show"));
+
+
+  function onCountryClick(i){
+    const c = COUNTRIES[i];
+    const cls = colorFor(i);
+    document.getElementById("infoCountry").textContent = "Country: " + c.name.toUpperCase();
+    document.getElementById("infoCapital").textContent = "Capital: " + c.capital.toUpperCase();
+    const statusEl = document.getElementById("infoStatus");
+    statusEl.className = "status " + cls;
+    statusEl.textContent = cls === "red" ? "IRENE이 정복!" : cls === "blue" ? "CLAIRE가 정복!" : "아직 정복 전";
+    infoCard.classList.add("show");
+    map.flyTo([c.lat, c.lon], 6, { duration: 0.6 });
+  }
+
+  document.getElementById("resetZoomBtn").addEventListener("click", ()=>{
+    const worldBounds = L.latLngBounds(COUNTRIES.map(c => [c.lat, c.lon]));
+    map.flyToBounds(worldBounds, { padding: [16, 16], duration: 0.6 });
+    infoCard.classList.remove("show");
+  });
+
+  /* ---------- Scoreboard ---------- */
+  function updateScoreboard(){
+    document.getElementById("ireneNum").textContent = state.irenePoints;
+    document.getElementById("claireNum").textContent = state.clairePoints;
+    document.getElementById("ireneBar").style.width = state.irenePoints + "%";
+    document.getElementById("claireBar").style.width = state.clairePoints + "%";
+    const filled = state.slots.filter(s=>s).length;
+    document.getElementById("progressPill").textContent = `${filled} / 100개국 정복`;
+  }
+
+  /* ---------- Catalog tab ---------- */
+  function renderCatalog(){
+    const wrap = document.getElementById("catalogList");
+    function chip(d, kind){
+      return `<div class="deed-chip">
+        <span>${d.icon}</span><span>${d.label}</span>
+        <span class="pts" style="color:${kind==='good' ? '#5c8a4a' : '#a14a3e'}">${kind==='good' ? '+' : '-'}${d.points}</span>
+      </div>`;
+    }
+    wrap.innerHTML = `
+      <div class="deed-section-title good">👍 착한일</div>
+      <div class="deed-grid">${GOOD_DEEDS.map(d=>chip(d,"good")).join("")}</div>
+      <div class="deed-section-title bad">👎 나쁜일</div>
+      <div class="deed-grid">${BAD_DEEDS.map(d=>chip(d,"bad")).join("")}</div>
+    `;
+  }
+
+  /* ---------- Stats tab ---------- */
+  function renderStats(){
+    renderStatsFor("irene", "statsIrene", "var(--red)");
+    renderStatsFor("claire", "statsClaire", "var(--blue)");
+  }
+  function renderStatsFor(child, elId, color){
+    const el = document.getElementById(elId);
+    const all = [...GOOD_DEEDS, ...BAD_DEEDS, {id:"custom", label:"직접 입력", icon:"✏️"}];
+    const counts = {};
+    state.log.forEach(l=>{ if (l.child===child){ counts[l.deed] = (counts[l.deed]||0)+1; } });
+    const max = Math.max(1, ...Object.values(counts));
+    el.innerHTML = all.map(d=>{
+      const c = counts[d.id] || 0;
+      const w = Math.round((c/max)*100);
+      return `<div class="stat-row">
+        <div class="lbl">${d.icon} ${d.label}</div>
+        <div class="track"><div class="fill" style="width:${w}%; background:${color};"></div></div>
+        <div class="cnt">${c}</div>
+      </div>`;
+    }).join("");
+  }
+
+  /* ---------- Log tab ---------- */
+  function renderLog(){
+    const el = document.getElementById("logList");
+    const items = [...state.log].reverse().slice(0, 60);
+    if (items.length === 0){
+      el.innerHTML = `<li>아직 기록이 없어요.</li>`;
+      return;
+    }
+    el.innerHTML = items.map(l=>{
+      const who = l.child === "irene" ? "IRENE" : "CLAIRE";
+      const sign = l.delta > 0 ? "+" : "";
+      const date = new Date(l.ts);
+      const when = `${date.getMonth()+1}/${date.getDate()}`;
+      return `<li><span>${l.icon}</span><span class="who">${who}</span><span>${l.label} (${sign}${l.delta})</span><span class="when">${when}</span></li>`;
+    }).join("");
+  }
+
+  /* ---------- Tabs ---------- */
+  document.querySelectorAll(".tab-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tab-"+btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  /* ---------- Log modal ---------- */
+  const logOverlay = document.getElementById("logOverlay");
+  let selChild = "irene";
+  let selCat = "good";
+  let selDeed = GOOD_DEEDS[0].id;
+
+  function renderDeedList(){
+    const wrap = document.getElementById("deedList");
+    const list = selCat === "good" ? GOOD_DEEDS : BAD_DEEDS;
+    wrap.innerHTML = list.map(d=>`
+      <div class="deed-opt ${d.id===selDeed?'active':''}" data-deed="${d.id}">
+        <span>${d.icon}</span><span>${d.label}</span>
+        <span class="pts">${selCat==='good'?'+':'-'}${d.points}</span>
+      </div>
+      `).join("") + `
+      <div class="deed-opt ${selDeed==='custom'?'active':''}" data-deed="custom">
+        <span>✏️</span><span>직접 입력</span>
+      </div>`;
+    wrap.querySelectorAll(".deed-opt").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        selDeed = el.dataset.deed;
+        document.getElementById("customFields").style.display = selDeed === "custom" ? "block" : "none";
+        renderDeedList();
+      });
+    });
+  }
+
+  document.querySelectorAll(".child-toggle .toggle-opt").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      selChild = el.dataset.child;
+      document.querySelectorAll(".child-toggle .toggle-opt").forEach(o=>o.classList.remove("active"));
+      el.classList.add("active");
+    });
+  });
+  document.querySelectorAll(".cat-toggle .toggle-opt").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      selCat = el.dataset.cat;
+      selDeed = (selCat==="good" ? GOOD_DEEDS[0].id : BAD_DEEDS[0].id);
+      document.querySelectorAll(".cat-toggle .toggle-opt").forEach(o=>o.classList.remove("active"));
+      el.classList.add("active");
+      document.getElementById("customFields").style.display = "none";
+      renderDeedList();
+    });
+  });
+
+  document.getElementById("openLogBtn").addEventListener("click", ()=>{
+    selChild = "irene"; selCat = "good"; selDeed = GOOD_DEEDS[0].id;
+    document.querySelectorAll(".child-toggle .toggle-opt").forEach(o=>o.classList.remove("active"));
+    document.querySelector('.child-toggle [data-child="irene"]').classList.add("active");
+    document.querySelectorAll(".cat-toggle .toggle-opt").forEach(o=>o.classList.remove("active"));
+    document.querySelector('.cat-toggle [data-cat="good"]').classList.add("active");
+    document.getElementById("customFields").style.display = "none";
+    document.getElementById("pinInput").value = "";
+    document.getElementById("logError").textContent = "";
+    renderDeedList();
+    logOverlay.classList.add("show");
+  });
+  document.getElementById("logCancelBtn").addEventListener("click", ()=> logOverlay.classList.remove("show"));
+
+  document.getElementById("logConfirmBtn").addEventListener("click", async ()=>{
+    const pin = document.getElementById("pinInput").value;
+    const errEl = document.getElementById("logError");
+    if (pin !== state.pin){ errEl.textContent = "비밀번호가 달라요. 다시 확인해주세요."; return; }
+
+    let icon, label, points;
+    if (selDeed === "custom"){
+      label = document.getElementById("customLabel").value.trim();
+      points = parseInt(document.getElementById("customPoints").value, 10);
+      icon = "✏️";
+      if (!label){ errEl.textContent = "무슨 일이었는지 적어주세요."; return; }
+      if (!points || points < 1){ errEl.textContent = "점수를 1 이상 입력해주세요."; return; }
+    } else {
+      const src = selCat === "good" ? GOOD_DEEDS : BAD_DEEDS;
+      const d = src.find(x=>x.id===selDeed);
+      icon = d.icon; label = d.label; points = d.points;
+    }
+
+    const delta = selCat === "good" ? points : -points;
+    applyDelta(selChild, delta);
+    state.log.push({ child:selChild, deed:selDeed, icon, label, delta, ts: Date.now() });
+    await saveState();
+    logOverlay.classList.remove("show");
+    renderAll();
+    checkCompletion();
+  });
+
+  function applyDelta(child, delta){
+    const color = child === "irene" ? "red" : "blue";
+    let current = child === "irene" ? state.irenePoints : state.clairePoints;
+    let steps = Math.abs(delta);
+    for (let s=0; s<steps; s++){
+      if (delta > 0){
+        if (current >= 100) break;
+        const emptyIdx = state.slots.findIndex(v=>v==="");
+        if (emptyIdx === -1) break;
+        state.slots[emptyIdx] = color;
+        current++;
+      } else {
+        if (current <= 0) break;
+        let lastIdx = -1;
+        for (let i=state.slots.length-1;i>=0;i--){ if (state.slots[i]===color){ lastIdx=i; break; } }
+        if (lastIdx === -1) break;
+        state.slots[lastIdx] = "";
+        current--;
+      }
+    }
+    if (child === "irene") state.irenePoints = current; else state.clairePoints = current;
+  }
+
+  function checkCompletion(){
+    const filled = state.slots.filter(s=>s).length;
+    if (filled >= 100){
+      document.getElementById("celebrateOverlay").classList.add("show");
+    }
+  }
+
+  /* ---------- Settings modal (change pin) ---------- */
+  const settingsOverlay = document.getElementById("settingsOverlay");
+  document.getElementById("openSettingsBtn").addEventListener("click", ()=>{
+    document.getElementById("currentPinInput").value = "";
+    document.getElementById("newPinInput").value = "";
+    document.getElementById("settingsError").textContent = "";
+    settingsOverlay.classList.add("show");
+  });
+  document.getElementById("settingsCancelBtn").addEventListener("click", ()=> settingsOverlay.classList.remove("show"));
+  document.getElementById("settingsConfirmBtn").addEventListener("click", async ()=>{
+    const cur = document.getElementById("currentPinInput").value;
+    const next = document.getElementById("newPinInput").value;
+    const err = document.getElementById("settingsError");
+    if (cur !== state.pin){ err.textContent = "현재 비밀번호가 달라요."; return; }
+    if (!next || next.length < 4){ err.textContent = "새 비밀번호는 4자리 이상으로 해주세요."; return; }
+    state.pin = next;
+    await saveState();
+    settingsOverlay.classList.remove("show");
+  });
+
+  /* ---------- Reset ---------- */
+  document.getElementById("closeCelebrateBtn").addEventListener("click", ()=>{
+    document.getElementById("celebrateOverlay").classList.remove("show");
+  });
+  document.getElementById("openResetBtn").addEventListener("click", ()=>{
+    document.getElementById("resetPinInput").value = "";
+    document.getElementById("resetError").textContent = "";
+    document.getElementById("resetOverlay").classList.add("show");
+  });
+  document.getElementById("resetCancelBtn").addEventListener("click", ()=>{
+    document.getElementById("resetOverlay").classList.remove("show");
+  });
+  document.getElementById("resetConfirmBtn").addEventListener("click", async ()=>{
+    const pin = document.getElementById("resetPinInput").value;
+    const err = document.getElementById("resetError");
+    if (pin !== state.pin){ err.textContent = "비밀번호가 달라요."; return; }
+    state.slots = new Array(100).fill("");
+    state.irenePoints = 0; state.clairePoints = 0; state.log = [];
+    await saveState();
+    document.getElementById("resetOverlay").classList.remove("show");
+    document.getElementById("celebrateOverlay").classList.remove("show");
+    renderAll();
+  });
+
+  /* ---------- Main render ---------- */
+  function renderAll(){
+    updateScoreboard();
+    refreshMarkerColors();
+    renderCatalog();
+    renderStats();
+    renderLog();
+  }
+
+  function setupMapAndUI(){
+    if (typeof L === "undefined"){
+      document.getElementById("mapEl").innerHTML =
+        '<div style="height:100%;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--ink-soft);padding:20px;">지도를 불러오지 못했어요.<br>인터넷 연결을 확인하고 새로고침 해주세요.</div>';
+    } else {
+      initMap();
+    }
+    renderAll();
+  }
+
+  let firstLoad = true;
+  function init(){
+    if (typeof firebase === "undefined"){
+      state = defaultState();
+      setupMapAndUI();
+      return;
+    }
+    firebase.initializeApp(FIREBASE_CONFIG);
+    dbRef = firebase.database().ref("family-conquest-state");
+    dbRef.on("value", (snapshot) => {
+      state = normalizeState(snapshot.val());
+      if (firstLoad){
+        firstLoad = false;
+        setupMapAndUI();
+      } else {
+        refreshMarkerColors();
+        renderAll();
+      }
+    }, (err) => {
+      console.error("Firebase 연결 실패", err);
+      if (firstLoad){
+        firstLoad = false;
+        state = defaultState();
+        setupMapAndUI();
+      }
+    });
+  }
+  init();
+})();
+</script>
+</body>
+</html>
