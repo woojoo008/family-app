@@ -221,6 +221,7 @@
     <div>
       <h1><span class="flag">🗺️</span> 우리 가족 세계정복 <span style="font-weight:600; font-size:0.55em; color:var(--ink-soft);">Family World Conquest</span></h1>
       <div class="subtitle">착한 일로 나라를 정복하고, 100개국을 다 채우면 각자 $100!</div>
+      <div class="subtitle">Do good deeds to conquer the world — fill all 100 countries and win $100 each!</div>
     </div>
     <div class="progress-pill" id="progressPill">0 / 100개국 정복</div>
   </header>
@@ -268,6 +269,7 @@
   </div>
 
   <div class="tab-panel" id="tab-stats">
+    <button class="btn ghost small" id="openResetBtnMain" style="margin-bottom:12px;">🔄 통계 초기화</button>
     <div class="stats-grid">
       <div class="stats-col">
         <h3 style="color:var(--red)">IRENE 통계</h3>
@@ -848,6 +850,11 @@
     document.getElementById("celebrateOverlay").classList.remove("show");
   });
   document.getElementById("openResetBtn").addEventListener("click", ()=>{
+    document.getElementById("resetPinInput").value = "";
+    document.getElementById("resetError").textContent = "";
+    document.getElementById("resetOverlay").classList.add("show");
+  });
+  document.getElementById("openResetBtnMain").addEventListener("click", ()=>{
     document.getElementById("resetPinInput").value = "";
     document.getElementById("resetError").textContent = "";
     document.getElementById("resetOverlay").classList.add("show");
