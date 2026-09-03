@@ -1,0 +1,11 @@
+{
+  "name": "우리 가족 세계정복",
+  "short_name": "세계정복",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#DCEAF6",
+  "theme_color": "#DCEAF6",
+  "icons": [
+    { "src": "icon.png", "sizes": "1024x1024", "type": "image/png" }
+  ]
+}
