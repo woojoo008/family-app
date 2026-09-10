@@ -119,16 +119,20 @@
 
   .actions-row{ display:flex; gap:10px; margin: 16px 0; flex-wrap:wrap; }
 
-  .tabs{ display:flex; gap:8px; margin: 22px 0 10px; }
+  .tabs{ display:flex; gap:8px; margin: 22px 0 10px; flex-wrap:wrap; }
   .tab-btn{
     font-family:inherit; cursor:pointer; border:2px solid var(--ink); background:transparent;
     color:var(--ink); padding:7px 14px; border-radius:999px; font-size:13.5px; font-weight:700;
   }
   .tab-btn.active{ background:var(--ink); color:var(--paper); }
+  .settings-pill{
+    font-family:inherit; cursor:pointer; border:2px solid var(--ink); background:transparent;
+    color:var(--ink); padding:7px 14px; border-radius:999px; font-size:13.5px; font-weight:700;
+  }
   .tab-panel{ display:none; }
   .tab-panel.active{ display:block; }
 
-  .legend-catalog{ display:flex; flex-direction:column; gap:16px; }
+  .legend-catalog{ display:flex; flex-direction:column; gap:16px; margin-bottom:22px; }
   .deed-section-title{ font-size:14px; font-weight:800; margin: 4px 0 -4px; color: var(--ink); }
   .deed-section-title.good{ color:#4a7a3a; }
   .deed-section-title.bad{ color:#8a3a2f; }
@@ -169,6 +173,20 @@
   }
   .modal h2{ margin:0 0 4px; font-size:18px; }
   .modal .hint{ font-size:12.5px; color:var(--ink-soft); margin-bottom:14px; }
+  .deed-preview{
+    display:flex; align-items:center; gap:12px;
+    background: linear-gradient(135deg,#FFF7E0,#FDF0DA);
+    border:2px solid var(--gold); border-radius:14px;
+    padding:12px 14px; margin-bottom:16px;
+  }
+  .deed-preview .dp-icon{ font-size:28px; line-height:1; }
+  .deed-preview .dp-text{ flex:1; }
+  .deed-preview .dp-label{ font-weight:800; font-size:15px; color:var(--ink); }
+  .deed-preview .dp-pts{ font-weight:800; font-size:13px; margin-top:2px; }
+  .deed-preview .dp-change{
+    font-family:inherit; background:none; border:none; text-decoration:underline;
+    color:var(--ink-soft); font-size:11.5px; cursor:pointer; padding:0; white-space:nowrap;
+  }
   .field-label{ font-size:12.5px; font-weight:700; margin:12px 0 6px; color:var(--ink-soft); }
   .child-toggle, .cat-toggle{ display:flex; gap:8px; }
   .toggle-opt{
@@ -253,19 +271,18 @@
     </div>
   </div>
 
-  <div class="actions-row">
-    <button class="btn" id="openLogBtn">✏️ 포인트 기록하기</button>
-    <button class="btn ghost" id="openSettingsBtn">⚙️ 비밀번호 설정</button>
-  </div>
-
   <div class="tabs">
-    <button class="tab-btn active" data-tab="catalog">착한일 · 나쁜일 목록</button>
+    <button class="tab-btn active" data-tab="log">기록</button>
     <button class="tab-btn" data-tab="stats">통계</button>
-    <button class="tab-btn" data-tab="log">기록</button>
+    <button class="settings-pill" id="openSettingsBtn">⚙️ 비밀번호 설정</button>
   </div>
 
-  <div class="tab-panel active" id="tab-catalog">
+  <div id="catalogSection">
     <div class="legend-catalog" id="catalogList"></div>
+  </div>
+
+  <div class="tab-panel active" id="tab-log">
+    <ul class="log-list" id="logList"></ul>
   </div>
 
   <div class="tab-panel" id="tab-stats">
@@ -282,10 +299,6 @@
     </div>
   </div>
 
-  <div class="tab-panel" id="tab-log">
-    <ul class="log-list" id="logList"></ul>
-  </div>
-
   <footer>이 링크를 가족과 공유하면 아빠·엄마·IRENE·CLAIRE 모두 같은 지도를 볼 수 있어요.</footer>
 </div>
 
@@ -295,20 +308,31 @@
     <h2>포인트 기록하기</h2>
     <div class="hint">포인트를 더하거나 빼려면 부모님 비밀번호가 필요해요.</div>
 
+    <div id="deedPreview" class="deed-preview" style="display:none;">
+      <span class="dp-icon" id="deedPreviewIcon"></span>
+      <div class="dp-text">
+        <div class="dp-label" id="deedPreviewLabel"></div>
+        <div class="dp-pts" id="deedPreviewPts"></div>
+      </div>
+      <button type="button" id="changeDeedBtn" class="dp-change">다른 항목 선택</button>
+    </div>
+
     <div class="field-label">누구인가요?</div>
     <div class="child-toggle">
       <div class="toggle-opt active irene" data-child="irene">IRENE</div>
       <div class="toggle-opt claire" data-child="claire">CLAIRE</div>
     </div>
 
-    <div class="field-label">착한 일이었나요, 아쉬운 일이었나요?</div>
-    <div class="cat-toggle">
-      <div class="toggle-opt active good" data-cat="good">👍 착한 일 (+점수)</div>
-      <div class="toggle-opt bad" data-cat="bad">👎 아쉬운 일 (-점수)</div>
-    </div>
+    <div id="deedPickerSection">
+      <div class="field-label">착한 일이었나요, 아쉬운 일이었나요?</div>
+      <div class="cat-toggle">
+        <div class="toggle-opt active good" data-cat="good">👍 착한 일 (+점수)</div>
+        <div class="toggle-opt bad" data-cat="bad">👎 아쉬운 일 (-점수)</div>
+      </div>
 
-    <div class="field-label">어떤 일인가요?</div>
-    <div class="deed-list" id="deedList"></div>
+      <div class="field-label">어떤 일인가요?</div>
+      <div class="deed-list" id="deedList"></div>
+    </div>
 
     <div id="customFields" style="display:none;">
       <div class="field-label">직접 입력</div>
@@ -441,12 +465,13 @@
   const GOOD_DEEDS = [
     {id:"dailystudy", label:"Daily study and math", icon:"📚", points:1},
     {id:"workbook", label:"Finish workbook", icon:"📝", points:2},
-    {id:"millionmedal", label:"Million medal", icon:"🏅", points:1},
+    {id:"millionmedal", label:"Million medal", icon:"🏅", points:2},
     {id:"aplusweek", label:"A+ for one week", icon:"🌟", points:1},
     {id:"laps", label:"Laps at El Dorado and Running each", icon:"🏃", points:2},
     {id:"naturecenter", label:"Nature center 4 laps", icon:"🌳", points:2},
     {id:"hiking", label:"Weekend hiking", icon:"🥾", points:3},
     {id:"errand", label:"Errands for parents", icon:"🧹", points:1},
+    {id:"winchess", label:"Winning chess", icon:"♟️", points:10},
   ];
   const BAD_DEEDS = [
     {id:"noaplus", label:"NO A+", icon:"📉", points:1},
@@ -455,6 +480,7 @@
     {id:"badword", label:"Bad word (evil mean)", icon:"🤬", points:1},
     {id:"nostudy", label:"No daily study", icon:"📕", points:1},
     {id:"nosleep", label:"10:30 no sleep", icon:"🌙", points:1},
+    {id:"losechess", label:"Losing chess", icon:"♟️", points:1},
   ];
 
   /* ---------- Storage (Firebase Realtime Database — real-time shared across everyone) ---------- */
@@ -647,7 +673,7 @@
   function renderCatalog(){
     const wrap = document.getElementById("catalogList");
     function chip(d, kind){
-      return `<div class="deed-chip">
+      return `<div class="deed-chip" data-kind="${kind}" data-deed="${d.id}" style="cursor:pointer;">
         <span>${d.icon}</span><span>${d.label}</span>
         <span class="pts" style="color:${kind==='good' ? '#5c8a4a' : '#a14a3e'}">${kind==='good' ? '+' : '-'}${d.points}</span>
       </div>`;
@@ -658,6 +684,11 @@
       <div class="deed-section-title bad">👎 나쁜일</div>
       <div class="deed-grid">${BAD_DEEDS.map(d=>chip(d,"bad")).join("")}</div>
     `;
+    wrap.querySelectorAll(".deed-chip").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        openLogModal(el.dataset.kind, el.dataset.deed, true);
+      });
+    });
   }
 
   /* ---------- Stats tab ---------- */
@@ -754,18 +785,44 @@
     });
   });
 
-  document.getElementById("openLogBtn").addEventListener("click", ()=>{
-    selChild = "irene"; selCat = "good"; selDeed = GOOD_DEEDS[0].id;
+  function openLogModal(kind, deedId, quick){
+    selChild = "irene";
+    selCat = kind || "good";
+    selDeed = deedId || (selCat === "good" ? GOOD_DEEDS[0].id : BAD_DEEDS[0].id);
     document.querySelectorAll(".child-toggle .toggle-opt").forEach(o=>o.classList.remove("active"));
     document.querySelector('.child-toggle [data-child="irene"]').classList.add("active");
     document.querySelectorAll(".cat-toggle .toggle-opt").forEach(o=>o.classList.remove("active"));
-    document.querySelector('.cat-toggle [data-cat="good"]').classList.add("active");
+    document.querySelector(`.cat-toggle [data-cat="${selCat}"]`).classList.add("active");
     document.getElementById("customFields").style.display = "none";
     document.getElementById("pinInput").value = "";
     document.getElementById("logError").textContent = "";
     renderDeedList();
+
+    const preview = document.getElementById("deedPreview");
+    const picker = document.getElementById("deedPickerSection");
+    if (quick && deedId && deedId !== "custom"){
+      const src = selCat === "good" ? GOOD_DEEDS : BAD_DEEDS;
+      const d = src.find(x=>x.id===deedId);
+      document.getElementById("deedPreviewIcon").textContent = d.icon;
+      document.getElementById("deedPreviewLabel").textContent = d.label;
+      const ptsEl = document.getElementById("deedPreviewPts");
+      ptsEl.textContent = (selCat==='good'?'+':'-') + d.points + "점";
+      ptsEl.style.color = selCat==='good' ? '#5c8a4a' : '#a14a3e';
+      preview.style.display = "flex";
+      picker.style.display = "none";
+    } else {
+      preview.style.display = "none";
+      picker.style.display = "block";
+    }
+
     logOverlay.classList.add("show");
+  }
+
+  document.getElementById("changeDeedBtn").addEventListener("click", ()=>{
+    document.getElementById("deedPreview").style.display = "none";
+    document.getElementById("deedPickerSection").style.display = "block";
   });
+
   document.getElementById("logCancelBtn").addEventListener("click", ()=> logOverlay.classList.remove("show"));
 
   document.getElementById("logConfirmBtn").addEventListener("click", async ()=>{
