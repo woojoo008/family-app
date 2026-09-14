@@ -144,6 +144,13 @@
     padding:10px 12px; font-size:13.5px; display:flex; align-items:center; gap:8px;
   }
   .deed-chip .pts{ margin-left:auto; font-weight:800; }
+  .deed-chip-special{
+    background: linear-gradient(135deg,#FCE9B0,#F6D67A);
+    border: 2px solid var(--gold);
+    box-shadow: 0 2px 8px rgba(201,154,59,0.35);
+    font-weight:700;
+  }
+  .deed-chip-special .pts{ color:#8a6100 !important; }
 
   .stats-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
   .stats-col h3{ margin: 4px 0 10px; font-size:15px; }
@@ -170,6 +177,19 @@
   .modal{
     background:#FBFEFF; border-radius:18px; padding:20px; width:100%; max-width:380px;
     box-shadow: var(--card-shadow); max-height:88vh; overflow:auto;
+    position: relative; z-index: 2;
+  }
+  .confetti-layer{
+    position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index: 5; border-radius:18px;
+  }
+  .confetti-piece{
+    position:absolute; border-radius:1px;
+    animation-name: confetti-burst; animation-timing-function: cubic-bezier(.2,.8,.3,1); animation-fill-mode: forwards;
+  }
+  @keyframes confetti-burst{
+    0%{ transform: translate(0,0) rotate(0deg); opacity:1; }
+    25%{ transform: translate(var(--midX), var(--midY)) rotate(var(--rot1)); opacity:1; }
+    100%{ transform: translate(var(--endX), var(--endY)) rotate(var(--rot2)); opacity:0; }
   }
   .modal h2{ margin:0 0 4px; font-size:18px; }
   .modal .hint{ font-size:12.5px; color:var(--ink-soft); margin-bottom:14px; }
@@ -305,6 +325,7 @@
 <!-- Add/Remove point modal -->
 <div class="overlay" id="logOverlay">
   <div class="modal">
+    <div id="confettiLayer" class="confetti-layer"></div>
     <h2>포인트 기록하기</h2>
     <div class="hint">포인트를 더하거나 빼려면 부모님 비밀번호가 필요해요.</div>
 
@@ -472,6 +493,7 @@
     {id:"hiking", label:"Weekend hiking", icon:"🥾", points:3},
     {id:"errand", label:"Errands for parents", icon:"🧹", points:1},
     {id:"winchess", label:"Winning chess", icon:"♟️", points:2},
+    {id:"eventwinner", label:"EVENT WINNER!", icon:"🏆", points:10, special:true},
   ];
   const BAD_DEEDS = [
     {id:"noaplus", label:"NO A+", icon:"📉", points:1},
@@ -672,7 +694,8 @@
   function renderCatalog(){
     const wrap = document.getElementById("catalogList");
     function chip(d, kind){
-      return `<div class="deed-chip" data-kind="${kind}" data-deed="${d.id}" style="cursor:pointer;">
+      const specialClass = d.special ? " deed-chip-special" : "";
+      return `<div class="deed-chip${specialClass}" data-kind="${kind}" data-deed="${d.id}" style="cursor:pointer;">
         <span>${d.icon}</span><span>${d.label}</span>
         <span class="pts" style="color:${kind==='good' ? '#5c8a4a' : '#a14a3e'}">${kind==='good' ? '+' : '-'}${d.points}</span>
       </div>`;
@@ -809,12 +832,158 @@
       ptsEl.style.color = selCat==='good' ? '#5c8a4a' : '#a14a3e';
       preview.style.display = "flex";
       picker.style.display = "none";
+      if (d.special){ launchConfetti(); playCelebrationSound(); }
     } else {
       preview.style.display = "none";
       picker.style.display = "block";
     }
 
     logOverlay.classList.add("show");
+  }
+
+  function playCelebrationSound(){
+    try{
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!playCelebrationSound._ctx) playCelebrationSound._ctx = new AC();
+      const ctx = playCelebrationSound._ctx;
+      if (ctx.state === "suspended") ctx.resume();
+
+      const now = ctx.currentTime;
+
+      // 1) a quick "pop/bang" burst of noise, like a party popper going off
+      function noisePop(t, dur, vol){
+        const bufSize = Math.floor(ctx.sampleRate * dur);
+        const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i=0; i<bufSize; i++){
+          data[i] = (Math.random()*2 - 1) * (1 - i/bufSize); // decaying noise
+        }
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.setValueAtTime(1800, t);
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(vol, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        src.start(t);
+      }
+      noisePop(now, 0.18, 0.5);
+
+      // 2) a brassy fanfare motif — two detuned sawtooth oscillators per note
+      //    for a fuller "horn section" sound, with a bright bandpass tone shaping.
+      function brassNote(t, freq, dur, vol){
+        [0, -6].forEach(detune=>{
+          const osc = ctx.createOscillator();
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(freq, t);
+          osc.detune.setValueAtTime(detune, t);
+          const filter = ctx.createBiquadFilter();
+          filter.type = "lowpass";
+          filter.frequency.setValueAtTime(freq*4, t);
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(vol, t + 0.02);
+          gain.gain.setValueAtTime(vol, t + dur*0.55);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + dur + 0.05);
+        });
+      }
+
+      // classic short fanfare rhythm: ta-ta-ta-TAAA
+      const fanfareStart = now + 0.08;
+      brassNote(fanfareStart,        392.00, 0.14, 0.16); // G4
+      brassNote(fanfareStart + 0.16, 392.00, 0.14, 0.16); // G4
+      brassNote(fanfareStart + 0.32, 392.00, 0.14, 0.16); // G4
+      brassNote(fanfareStart + 0.50, 587.33, 0.75, 0.20); // D5 held triumphant note
+
+      // shimmering high sparkle under the held note
+      const sparkleAt = fanfareStart + 0.55;
+      [784.0, 987.77, 1174.7].forEach((freq,i)=>{
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, sparkleAt);
+        gain.gain.setValueAtTime(0, sparkleAt);
+        gain.gain.linearRampToValueAtTime(0.08, sparkleAt + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, sparkleAt + 0.7);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(sparkleAt);
+        osc.stop(sparkleAt + 0.75);
+      });
+    }catch(e){ /* sound is a nice-to-have; ignore failures */ }
+  }
+
+  function launchConfetti(){
+    const layer = document.getElementById("confettiLayer");
+    if (!layer) return;
+    layer.innerHTML = "";
+    const colors = ["#C99A3B","#C2453B","#1D4F8C","#5c8a4a","#e8c766","#E7B8B2"];
+
+    // 8 burst points around the edge, each aimed generally inward (toward center)
+    const origins = [
+      { pos:{top:"-6px", left:"30%"},   angle:60  },  // top-left   -> down-right
+      { pos:{top:"-6px", left:"70%"},   angle:120 },  // top-right  -> down-left
+      { pos:{bottom:"-6px", left:"30%"}, angle:300 }, // bottom-left  -> up-right
+      { pos:{bottom:"-6px", left:"70%"}, angle:240 }, // bottom-right -> up-left
+      { pos:{left:"-6px", top:"30%"},   angle:30  },  // left-upper  -> right-down
+      { pos:{left:"-6px", top:"70%"},   angle:330 },  // left-lower  -> right-up
+      { pos:{right:"-6px", top:"30%"},  angle:150 },  // right-upper -> left-down
+      { pos:{right:"-6px", top:"70%"},  angle:210 },  // right-lower -> left-up
+    ];
+
+    const perOrigin = 18;
+    origins.forEach(origin=>{
+      for (let i=0; i<perOrigin; i++){
+        const piece = document.createElement("div");
+        piece.className = "confetti-piece";
+        Object.assign(piece.style, origin.pos);
+
+        const spread = 50; // degrees of random spread around the base angle
+        const angleDeg = origin.angle + (Math.random()*spread*2 - spread);
+        const angleRad = angleDeg * Math.PI / 180;
+        const peakDist = 90 + Math.random()*140;
+        const endDist = peakDist + 40 + Math.random()*70;
+        const gravity = 40 + Math.random()*60; // extra downward pull after the pop
+
+        const midX = Math.cos(angleRad) * peakDist;
+        const midY = Math.sin(angleRad) * peakDist;
+        const endX = Math.cos(angleRad) * endDist;
+        const endY = Math.sin(angleRad) * endDist + gravity;
+
+        const delay = Math.random()*0.15;
+        const duration = 2.3 + Math.random()*0.8;
+        const rot1 = (Math.random()*360-180);
+        const rot2 = rot1 + (Math.random()*720-360);
+        const color = colors[Math.floor(Math.random()*colors.length)];
+        const size = 6 + Math.random()*8;
+
+        piece.style.background = color;
+        piece.style.width = size + "px";
+        piece.style.height = (size*0.4) + "px";
+        piece.style.animationDelay = delay + "s";
+        piece.style.animationDuration = duration + "s";
+        piece.style.setProperty("--midX", midX + "px");
+        piece.style.setProperty("--midY", midY + "px");
+        piece.style.setProperty("--endX", endX + "px");
+        piece.style.setProperty("--endY", endY + "px");
+        piece.style.setProperty("--rot1", rot1 + "deg");
+        piece.style.setProperty("--rot2", rot2 + "deg");
+        layer.appendChild(piece);
+      }
+    });
+
+    clearTimeout(launchConfetti._t);
+    launchConfetti._t = setTimeout(()=>{ layer.innerHTML = ""; }, 3800);
   }
 
   document.getElementById("changeDeedBtn").addEventListener("click", ()=>{
